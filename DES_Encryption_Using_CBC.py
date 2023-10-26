@@ -282,7 +282,7 @@ def encrypt_with_iv(plaintext, K1, K2, iv):
   # Final permutation (FP)
   ciphertext = permute(result_data, FP)
   print(
-      f"\nAfter Final Permutation\n\nCipherText: {add_spaces(ciphertext.to01())}"
+      f"\nAfter Inverse Initial Permutation\n\nCipherText: {add_spaces(ciphertext.to01())}"
   )
   return ciphertext
 
