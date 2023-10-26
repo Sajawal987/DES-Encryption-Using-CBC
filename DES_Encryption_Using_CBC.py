@@ -94,6 +94,19 @@ S_BOX = [
 ]
 
 
+def bitarray_to_text(bitarray):
+  # Convert the bitarray to a binary string
+  binary_str = bitarray.to01()
+
+  # Split the binary string into 8-bit chunks
+  binary_chunks = [binary_str[i:i + 8] for i in range(0, len(binary_str), 8)]
+
+  # Convert each 8-bit chunk to its ASCII character and join them to form the text
+  text = ''.join(chr(int(chunk, 2)) for chunk in binary_chunks)
+
+  return text
+
+
 def add_spaces(binary_string):
   return ' '.join(binary_string[i:i + 8]
                   for i in range(0, len(binary_string), 8))
@@ -102,23 +115,26 @@ def add_spaces(binary_string):
 def permute(key, table):
   """Performs permutation on the key according to the given table."""
   return bitarray.bitarray([key[i - 1] for i in table])
-def sbox_substitution(data,j):
+
+
+def sbox_substitution(data, j):
   sboxed_data = bitarray.bitarray()
   for i in range(8):
-      block = data[i * 6:(i + 1) * 6]
+    block = data[i * 6:(i + 1) * 6]
 
     # Pad the block with zeros to make it a multiple of 8 bits long
-      while len(block) < 8:
-          block.append(0)
+    while len(block) < 8:
+      block.append(0)
 
-    # Convert the block to an integer
-      row = int(block[0]) * 2 + int(block[5])
-      col = int(block[1]) * 8 + int(block[2]) * 4 + int(block[3]) * 2 + int(block[4])
+  # Convert the block to an integer
+    row = int(block[0]) * 2 + int(block[5])
+    col = int(block[1]) * 8 + int(block[2]) * 4 + int(block[3]) * 2 + int(
+        block[4])
 
-      sbox_value = S_BOX[i][row][col]
-      sboxed_data.extend(format(sbox_value, '04b'))
+    sbox_value = S_BOX[i][row][col]
+    sboxed_data.extend(format(sbox_value, '04b'))
   print("\nAfter Appling S-Boxes on Each Block")
-  if j==1:
+  if j == 1:
     print(f"S(K1 XOR E(R0)): {sboxed_data.to01()}")
   else:
     print(f"S(K2 XOR E(R1)): {sboxed_data.to01()}")
@@ -126,33 +142,30 @@ def sbox_substitution(data,j):
   return sboxed_data
 
 
-
-
-
-def perform_des_round(data, key,i):
-  if i==1:
+def perform_des_round(data, key, i):
+  if i == 1:
     print("F(R0, K1) :")
   else:
     print("F(R1, K2) :")
   # Expand and permute the data
   expanded_data = permute(data, E)  # 48 bits
-  if i==1:
+  if i == 1:
     print(f"E(R0) in 48 bits: {add_spaces(expanded_data.to01())}")
   else:
     print(f"E(R1) in 48 bits: {add_spaces(expanded_data.to01())}")
   # XOR with the round key
   expanded_data ^= key
-  if i==1:
+  if i == 1:
     print(f"K1 XOR E(R0): {add_spaces(expanded_data.to01())}")
   else:
     print(f"K2 XOR E(R1): {add_spaces(expanded_data.to01())}")
   # Apply the S-boxes
-  sboxed_data = sbox_substitution(expanded_data,i)
+  sboxed_data = sbox_substitution(expanded_data, i)
 
   print("\nNow Applying P-BOX")
   # Permute using P-box
   permuted_data = permute(sboxed_data, P)
-  if i==1:
+  if i == 1:
     print(f"F(R0,K1): {permuted_data.to01()}")
   else:
     print(f"F(R1,K2): {permuted_data.to01()}")
@@ -187,7 +200,6 @@ def generate_round_keys(key_text):
   D1 = D0[1:] + D0[:1]
   print(f"C1:{add_spaces(C1.to01())} ")
   print(f"D1:{add_spaces(D1.to01())} ")
- 
 
   print("\nAgain Left Shift by 1 Bit")
   # Perform a left shift for both halves (C2 and D2)
@@ -201,16 +213,15 @@ def generate_round_keys(key_text):
   combined_half = C1 + D1
 
   print(f"C1D1:{add_spaces(combined_half.to01())} ")
-  
+
   # Apply the permutation choice 2 (PC2) to get K1
   K1 = permute(combined_half, PC2)
 
   print("\nConcatenating C2 and D2")
   # Combine C2 and D2
   combined_half = C2 + D2
-  
-  print(f"C2D2:{add_spaces(combined_half.to01())} ")
 
+  print(f"C2D2:{add_spaces(combined_half.to01())} ")
 
   # Apply the permutation choice 2 (PC2) to get K2
   K2 = permute(combined_half, PC2)
@@ -218,6 +229,59 @@ def generate_round_keys(key_text):
   print(f"K1: {K1.to01()}")
   print(f"K2: {K2.to01()}")
   return K1, K2
+
+
+def decrypt_with_iv(ciphertext, K1, K2, iv):
+  print("\n\nDecryption:")
+  # Initial permutation (IP)
+  ciphertext = permute(ciphertext, IP)
+
+  print(f"After Initial Permutation: {add_spaces(ciphertext.to01())}")
+
+  print("\nNow Split this into L2 and R2 each of 32 bits")
+  # Split the data into two halves, L2 and R2
+  L0 = ciphertext[:32]
+  R0 = ciphertext[32:]
+  print(f"L0:{add_spaces(L0.to01())} ")
+  print(f"R0:{add_spaces(R0.to01())} ")
+
+  print("\nRound 1\n")
+  # Round 1 (Decrypt)
+  L1 = R0
+  print(f"L1:{add_spaces(L1.to01())} ")
+  print("R1 = L0 XOR F(R0, K2)")
+  R1 = L0 ^ perform_des_round(R0, K2, 2)
+  print(f"R1:{add_spaces(R1.to01())} ")
+
+  print("\nRound 2\n")
+  # Round 2 (Decrypt)
+  L2 = R1
+  print(f"L2:{add_spaces(L2.to01())} ")
+  print("R2 = L1 XOR F(R1, K1)")
+  R2 = L1 ^ perform_des_round(R1, K1, 1)
+  print(f"R2:{add_spaces(R2.to01())} ")
+
+  # Concatenate L2 and R2
+  decrypted_data = R2 + L2
+  print(f"\nSwap and Concatenating R2L2: {add_spaces(decrypted_data.to01())} ")
+
+  # Final permutation (FP)
+  finaldata = permute(decrypted_data, FP)
+  print(f"\nAfter Final Permutation: {add_spaces(finaldata.to01())}")
+
+  # Convert IV from text to binary
+  iv_binary = ''.join(format(ord(char), '08b') for char in iv)
+
+  # Ensure IV is 64 bits (pad with zeros if needed)
+  iv_binary = iv_binary[:64].ljust(64, '0')
+
+  print(f"IV in 64 bit:{add_spaces(iv_binary)} ")
+
+  plaintext = finaldata ^ bitarray.bitarray(iv_binary)
+  print(f"IV XOR FinalData: {plaintext.to01()}")
+
+  print(f"PlainText:{bitarray_to_text(plaintext)}")
+  return bitarray_to_text(plaintext)
 
 
 def encrypt_with_iv(plaintext, K1, K2, iv):
@@ -238,7 +302,6 @@ def encrypt_with_iv(plaintext, K1, K2, iv):
       iv_binary)
   print(f"IV XOR PlainText: {initial_data.to01()}")
 
-
   # Initial permutation (IP)
   initial_data = permute(initial_data, IP)
 
@@ -251,43 +314,50 @@ def encrypt_with_iv(plaintext, K1, K2, iv):
   print(f"L0:{add_spaces(L0.to01())} ")
   print(f"R0:{add_spaces(R0.to01())} ")
 
-
   print("\nRound 1\n")
   # Round 1
   L1 = R0
   print(f"L1:{add_spaces(L1.to01())} ")
   print("R1 = L0 XOR F(R0, K1)")
-  R1 = L0 ^ perform_des_round(R0, K1,1)
-  print(f"R1:{add_spaces(R1.to01())} ")  
+  R1 = L0 ^ perform_des_round(R0, K1, 1)
+  print(f"R1:{add_spaces(R1.to01())} ")
 
   print("\nRound 2\n")
   # Round 2
   L2 = R1
   print(f"L2:{add_spaces(L2.to01())} ")
   print("R2 = L1 XOR F(R1, K2)")
-  R2 = L1 ^ perform_des_round(R1, K2,2)
-  print(f"R2:{add_spaces(R2.to01())} ")  
+  R2 = L1 ^ perform_des_round(R1, K2, 2)
+  print(f"R2:{add_spaces(R2.to01())} ")
 
   # Concatenate L2 and R2
-  result_data = L2 + R2
-  print(f"\nConcatenating L2 and R2 :{add_spaces(result_data.to01())} ")
+  result_data = R2 + L2
+  print(f"\nSwap and Concatenating R2L2 :{add_spaces(result_data.to01())} ")
   # Final permutation (FP)
   ciphertext = permute(result_data, FP)
-  print(f"\nAfter Final Permutation\n\nCipherText: {ciphertext.to01()}")
+  print(
+      f"\nAfter Final Permutation\n\nCipherText: {add_spaces(ciphertext.to01())}"
+  )
   return ciphertext
 
 
+# # Input the key in text form
+# key_text = input("Enter the 8-character key in text form: ")
+
+# # Input the IV in text form
+# iv_text = input("Enter the 8-character IV in text form: ")
+
+# # Input the plaintext in text form
+# plaintext = input("Enter the 8-character plaintext in text form: ")
+
 # Input the key in text form
-key_text = input("Enter the 8-character key in text form: ")
+key_text = "MUNEEBIF"
 
 # Input the IV in text form
-iv_text = input("Enter the 8-character IV in text form: ")
+iv_text = "MUNEEBIF"
 
 # Input the plaintext in text form
-plaintext = input("Enter the 8-character plaintext in text form: ")
-
-
-
+plaintext = "LAHOREIS"
 
 print(f"PlainText: {plaintext}")
 print(f"Key: {key_text}")
@@ -298,4 +368,4 @@ K1, K2 = generate_round_keys(key_text)
 # Encrypt the plaintext with IV
 ciphertext = encrypt_with_iv(plaintext, K1, K2, iv_text)
 
-
+plaintext = decrypt_with_iv(ciphertext, K1, K2, iv_text)
