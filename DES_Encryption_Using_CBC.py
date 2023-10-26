@@ -215,8 +215,8 @@ def generate_round_keys(key_text):
   # Apply the permutation choice 2 (PC2) to get K2
   K2 = permute(combined_half, PC2)
   print("\nAfter Appling PC-2")
-  print(f"K1: {K1}")
-  print(f"K2: {K2}")
+  print(f"K1: {K1.to01()}")
+  print(f"K2: {K2.to01()}")
   return K1, K2
 
 
@@ -236,7 +236,7 @@ def encrypt_with_iv(plaintext, K1, K2, iv):
   print(f"Plaintext in 64 bit:{add_spaces(plaintext_binary)} ")
   initial_data = bitarray.bitarray(plaintext_binary) ^ bitarray.bitarray(
       iv_binary)
-  print(f"VI XOR PlainText: {initial_data.to01()}")
+  print(f"IV XOR PlainText: {initial_data.to01()}")
 
 
   # Initial permutation (IP)
