@@ -230,60 +230,6 @@ def generate_round_keys(key_text):
   print(f"K2: {K2.to01()}")
   return K1, K2
 
-
-def decrypt_with_iv(ciphertext, K1, K2, iv):
-  print("\n\nDecryption:")
-  # Initial permutation (IP)
-  ciphertext = permute(ciphertext, IP)
-
-  print(f"After Initial Permutation: {add_spaces(ciphertext.to01())}")
-
-  print("\nNow Split this into L2 and R2 each of 32 bits")
-  # Split the data into two halves, L2 and R2
-  L0 = ciphertext[:32]
-  R0 = ciphertext[32:]
-  print(f"L0:{add_spaces(L0.to01())} ")
-  print(f"R0:{add_spaces(R0.to01())} ")
-
-  print("\nRound 1\n")
-  # Round 1 (Decrypt)
-  L1 = R0
-  print(f"L1:{add_spaces(L1.to01())} ")
-  print("R1 = L0 XOR F(R0, K2)")
-  R1 = L0 ^ perform_des_round(R0, K2, 2)
-  print(f"R1:{add_spaces(R1.to01())} ")
-
-  print("\nRound 2\n")
-  # Round 2 (Decrypt)
-  L2 = R1
-  print(f"L2:{add_spaces(L2.to01())} ")
-  print("R2 = L1 XOR F(R1, K1)")
-  R2 = L1 ^ perform_des_round(R1, K1, 1)
-  print(f"R2:{add_spaces(R2.to01())} ")
-
-  # Concatenate L2 and R2
-  decrypted_data = R2 + L2
-  print(f"\nSwap and Concatenating R2L2: {add_spaces(decrypted_data.to01())} ")
-
-  # Final permutation (FP)
-  finaldata = permute(decrypted_data, FP)
-  print(f"\nAfter Final Permutation: {add_spaces(finaldata.to01())}")
-
-  # Convert IV from text to binary
-  iv_binary = ''.join(format(ord(char), '08b') for char in iv)
-
-  # Ensure IV is 64 bits (pad with zeros if needed)
-  iv_binary = iv_binary[:64].ljust(64, '0')
-
-  print(f"IV in 64 bit:{add_spaces(iv_binary)} ")
-
-  plaintext = finaldata ^ bitarray.bitarray(iv_binary)
-  print(f"IV XOR FinalData: {plaintext.to01()}")
-
-  print(f"PlainText:{bitarray_to_text(plaintext)}")
-  return bitarray_to_text(plaintext)
-
-
 def encrypt_with_iv(plaintext, K1, K2, iv):
   print("\n\nEncryption:")
   # Convert IV from text to binary
@@ -341,23 +287,16 @@ def encrypt_with_iv(plaintext, K1, K2, iv):
   return ciphertext
 
 
-# # Input the key in text form
-# key_text = input("Enter the 8-character key in text form: ")
-
-# # Input the IV in text form
-# iv_text = input("Enter the 8-character IV in text form: ")
-
-# # Input the plaintext in text form
-# plaintext = input("Enter the 8-character plaintext in text form: ")
-
 # Input the key in text form
-key_text = "MUNEEBIF"
+key_text = input("Enter the 8-character key in text form: ")
 
 # Input the IV in text form
-iv_text = "MUNEEBIF"
+iv_text = input("Enter the 8-character IV in text form: ")
 
 # Input the plaintext in text form
-plaintext = "LAHOREIS"
+plaintext = input("Enter the 8-character plaintext in text form: ")
+
+
 
 print(f"PlainText: {plaintext}")
 print(f"Key: {key_text}")
@@ -368,4 +307,4 @@ K1, K2 = generate_round_keys(key_text)
 # Encrypt the plaintext with IV
 ciphertext = encrypt_with_iv(plaintext, K1, K2, iv_text)
 
-plaintext = decrypt_with_iv(ciphertext, K1, K2, iv_text)
+
